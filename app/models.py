@@ -1,10 +1,9 @@
 from django.db import models
-from django.utils import timezone
 
 
 class User(models.Model):
     login = models.CharField(max_length=255)
-    registration_date = models.DateTimeField(default=timezone.now())
+    registration_date = models.DateTimeField()
 
     class Meta:
         ordering = ["registration_date"]
@@ -14,12 +13,12 @@ class User(models.Model):
 
 
 class Credits(models.Model):
-    user_id = models.ForeignKey(User, on_delete=models.CASCADE, primary_key=True)
-    issuance_date = models.DateTimeField(default=timezone.now)
+    user_id = models.ForeignKey(User, on_delete=models.CASCADE)
+    issuance_date = models.DateTimeField()
     return_date = models.DateTimeField()
     actual_return_date = models.DateTimeField(blank=True, null=True)
     body = models.IntegerField()
-    percent = models.DecimalField(max_digits=5, decimal_places=2)
+    percent = models.DecimalField(max_digits=8, decimal_places=2)
 
     class Meta:
         ordering = ["issuance_date"]
@@ -48,7 +47,7 @@ class Plans(models.Model):
 
 
 class Payments(models.Model):
-    sum = models.DecimalField(max_digits=5, decimal_places=2)
+    sum = models.DecimalField(max_digits=8, decimal_places=2)
     payment_date = models.DateTimeField()
     credit_id = models.ForeignKey(Credits, on_delete=models.CASCADE)
     type_id = models.ForeignKey(Dictionary, on_delete=models.CASCADE)
