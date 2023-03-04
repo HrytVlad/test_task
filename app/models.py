@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Sum
 
 
 class User(models.Model):
@@ -19,6 +20,10 @@ class Credits(models.Model):
     actual_return_date = models.DateTimeField(blank=True, null=True)
     body = models.IntegerField()
     percent = models.DecimalField(max_digits=8, decimal_places=2)
+
+    @property
+    def is_closed(self):
+        return self.actual_return_date is not None
 
     class Meta:
         ordering = ["issuance_date"]
