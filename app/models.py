@@ -14,7 +14,7 @@ class User(models.Model):
 
 
 class Credits(models.Model):
-    user_id = models.ForeignKey(User, on_delete=models.CASCADE)
+    user_id = models.ForeignKey(User, on_delete=models.CASCADE, related_name="credits")
     issuance_date = models.DateTimeField()
     return_date = models.DateTimeField()
     actual_return_date = models.DateTimeField(blank=True, null=True)
@@ -42,7 +42,7 @@ class Dictionary(models.Model):
 class Plans(models.Model):
     period = models.DateTimeField()
     sum = models.IntegerField()
-    category_id = models.ForeignKey(Dictionary, on_delete=models.CASCADE)
+    category_id = models.ForeignKey(Dictionary, on_delete=models.CASCADE, related_name="plans")
 
     class Meta:
         ordering = ["period"]
@@ -54,8 +54,8 @@ class Plans(models.Model):
 class Payments(models.Model):
     sum = models.DecimalField(max_digits=8, decimal_places=2)
     payment_date = models.DateTimeField()
-    credit_id = models.ForeignKey(Credits, on_delete=models.CASCADE)
-    type_id = models.ForeignKey(Dictionary, on_delete=models.CASCADE)
+    credit_id = models.ForeignKey(Credits, on_delete=models.CASCADE, related_name="payments")
+    type_id = models.ForeignKey(Dictionary, on_delete=models.CASCADE, related_name="payments")
 
     class Meta:
         ordering = ["payment_date"]
