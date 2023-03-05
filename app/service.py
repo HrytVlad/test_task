@@ -1,6 +1,7 @@
 import csv
 import os
 from datetime import datetime
+import pandas as pd
 
 from app.models import User, Credits, Dictionary, Plans, Payments
 
@@ -29,7 +30,9 @@ def process_csv_credits():
         reader = csv.DictReader(f, delimiter="\t")
         for row in reader:
             if row["actual_return_date"]:
-                actual_return_date = datetime.strptime(row["actual_return_date"], "%d.%m.%Y").date()
+                actual_return_date = datetime.strptime(
+                    row["actual_return_date"], "%d.%m.%Y"
+                ).date()
             else:
                 actual_return_date = None
             credit = Credits(
@@ -65,11 +68,9 @@ def process_csv_plans():
         for row in reader:
             plans = Plans(
                 id=row["id"],
-                period=datetime.strptime(
-                    row["period"], "%d.%m.%Y"
-                ).date(),
+                period=datetime.strptime(row["period"], "%d.%m.%Y").date(),
                 sum=row["sum"],
-                category_id=Dictionary.objects.get(id=row["category_id"])
+                category_id=Dictionary.objects.get(id=row["category_id"]),
             )
             plans.save()
 
@@ -82,11 +83,9 @@ def process_csv_payments():
             payments = Payments(
                 id=row["id"],
                 sum=row["sum"],
-                payment_date=datetime.strptime(
-                    row["payment_date"], "%d.%m.%Y"
-                ).date(),
+                payment_date=datetime.strptime(row["payment_date"], "%d.%m.%Y").date(),
                 credit_id=Credits.objects.get(id=row["credit_id"]),
-                type_id=Dictionary.objects.get(id=row["type_id"])
+                type_id=Dictionary.objects.get(id=row["type_id"]),
             )
             payments.save()
 
@@ -97,3 +96,30 @@ def save_data_from_cvs_file():
     process_csv_dictionary()
     process_csv_plans()
     process_csv_payments()
+
+
+def import_plans_from_excel(file):
+    df = pd.read_excel(file)
+
+    for index, row in df.iterrows():
+        period = row["period"]
+        category_name = row["category_id.name"]
+        amount = row["sum"]
+
+        if Plans.objects.filter(
+            period=period, category_id__name=category_name
+        ).exists():
+            raise ValueError(
+                f"Plan for period {period} and category {category_name} already exists."
+            )
+
+        if period.day != 1:
+            raise ValueError("Period should be the first day of the month.")
+
+        if pd.isna(amount):
+            raise ValueError("Sum column must not contain empty values.")
+
+        category = Dictionary.objects.get(name=category_name)
+
+        plan = Plans(period=period, sum=amount, category_id=category)
+        plan.save()
