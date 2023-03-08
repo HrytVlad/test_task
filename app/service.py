@@ -102,9 +102,9 @@ def import_plans_from_excel(file):
     df = pd.read_excel(file)
 
     for index, row in df.iterrows():
-        period = row["period"]
-        category_name = row["category_id.name"]
-        amount = row["sum"]
+        period = row["місяць плану"]
+        category_name = row["назва категорії плану"]
+        amount = row["сума"]
 
         if Plans.objects.filter(
             period=period, category_id__name=category_name

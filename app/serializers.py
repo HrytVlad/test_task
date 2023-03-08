@@ -12,8 +12,6 @@ class PaymentSerializer(serializers.ModelSerializer):
 
 
 class ClosedCreditSerializer(serializers.ModelSerializer):
-    total_payments = serializers.SerializerMethodField()
-
     class Meta:
         model = Credits
         fields = [
@@ -25,44 +23,55 @@ class ClosedCreditSerializer(serializers.ModelSerializer):
             "total_payments",
         ]
 
+    total_payments = serializers.SerializerMethodField()
+
     def get_total_payments(self, obj):
-        payments = obj.payments_set.all()
-        return payments.aggregate(Sum("sum"))["sum__sum"]
+        payments = obj.payments.all()
+        total_payments = Decimal(0)
+        for payment in payments:
+            total_payments += payment.sum
+        return total_payments
 
 
 class OpenCreditSerializer(serializers.ModelSerializer):
-    overdue_days = serializers.SerializerMethodField()
-    body_payments_sum = serializers.SerializerMethodField()
-    interest_payments_sum = serializers.SerializerMethodField()
-
     class Meta:
         model = Credits
-        fields = (
+        fields = [
+            "issuance_date",
+            "is_closed",
             "return_date",
-            "overdue_days",
+            "is_overdue",
             "body",
             "percent",
             "body_payments_sum",
             "interest_payments_sum",
-        )
+        ]
 
-    def get_overdue_days(self, obj):
+    is_overdue = serializers.SerializerMethodField()
+    body_payments_sum = serializers.SerializerMethodField()
+    interest_payments_sum = serializers.SerializerMethodField()
+
+    def get_is_overdue(self, obj):
         if obj.actual_return_date is None and obj.return_date < timezone.now():
-            return (timezone.now() - obj.return_date).days
-        else:
-            return None
+            overdue_days = (timezone.now() - obj.return_date).days
+            return overdue_days
+        return 0
 
     def get_body_payments_sum(self, obj):
-        body_payments_sum = Payments.objects.filter(
+        return Payments.objects.filter(
             credit_id=obj.id, type_id__name="тіло"
-        ).aggregate(Sum("sum"))["sum__sum"]
-        return body_payments_sum or Decimal(0)
+        ).aggregate(Sum("sum"))["sum__sum"] or Decimal(0)
 
     def get_interest_payments_sum(self, obj):
-        interest_payments_sum = Payments.objects.filter(
+        return Payments.objects.filter(
             credit_id=obj.id, type_id__name="відсотки"
-        ).aggregate(Sum("sum"))["sum__sum"]
-        return interest_payments_sum
+        ).aggregate(Sum("sum"))["sum__sum"] or Decimal(0)
+
+    def to_representation(self, instance):
+        if instance.actual_return_date:
+            return ClosedCreditSerializer(instance).data
+        else:
+            return super().to_representation(instance)
 
 
 class ImportPlansSerializer(serializers.Serializer):
